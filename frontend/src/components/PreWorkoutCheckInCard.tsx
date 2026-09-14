@@ -110,6 +110,7 @@ export function PreWorkoutCheckInCard({ exerciseId, initialPlan, onApplyAdjustme
   const [applied, setApplied] = useState<boolean>(false);
   const [result, setResult] = useState<ReadinessOut | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [fetchFailed, setFetchFailed] = useState<boolean>(false);
 
   const targetWeight = initialPlan?.weight ?? 60.0;
 
@@ -126,11 +127,16 @@ export function PreWorkoutCheckInCard({ exerciseId, initialPlan, onApplyAdjustme
         targetLoad: targetWeight,
       })
         .then((r) => {
-          if (!cancelled) setResult(r);
+          if (!cancelled) {
+            setResult(r);
+            setFetchFailed(false);
+          }
         })
         .catch(() => {
-          /* Keep the last good reading on a transient error; the Apply
-             button falls back to the unadjusted plan if none ever loads. */
+          // Keep the last good reading on screen (if any) rather than
+          // getting stuck on "Computing…" forever; Apply then falls back
+          // to the unadjusted plan since `result` never updates.
+          if (!cancelled) setFetchFailed(true);
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -146,7 +152,11 @@ export function PreWorkoutCheckInCard({ exerciseId, initialPlan, onApplyAdjustme
   const readinessScore = result?.readinessScore ?? 60;
   const modifierPct = result ? Number((result.readinessModifier * 100).toFixed(1)) : 0;
   const adjustedWeight = result?.adjustedLoad ?? targetWeight;
-  const message = result?.message ?? 'Computing readiness…';
+  const message = result
+    ? result.message
+    : fetchFailed
+    ? "Couldn't reach the readiness engine — proceeding with the unadjusted plan."
+    : 'Computing readiness…';
   const status: ReadinessOut['status'] = result?.status ?? 'ADEQUATE BASELINE';
   const statusColor = STATUS_COLOR[status];
 
