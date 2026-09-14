@@ -6,9 +6,9 @@ interface LoadingStateProps {
 
 export function LoadingState({ message = 'Loading…' }: LoadingStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-400" role="status">
-      <Loader2 size={28} className="animate-spin text-[#38bdf8]" />
-      <span className="text-sm font-medium">{message}</span>
+    <div className="flex flex-col items-center justify-center gap-3 py-16 text-[#B8B8AD]" role="status">
+      <Loader2 size={28} className="animate-spin text-[#8FB69A]" />
+      <span className="text-sm font-medium font-mono">{message}</span>
     </div>
   );
 }

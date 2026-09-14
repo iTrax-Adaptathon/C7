@@ -20,29 +20,30 @@ export interface DecisionTheme {
 const THEMES: Record<Decision, DecisionTheme> = {
   PROGRESS: {
     label: 'PROGRESS',
-    badge: 'bg-[#00a572]/20 border-[#4edea3]/40 text-[#4edea3]',
-    text: 'text-[#4edea3]',
-    accent: '#4edea3',
-    button: 'bg-[#4edea3] text-[#003824]',
+    badge: 'bg-[#8FB69A]/15 border-[#8FB69A]/30 text-[#8FB69A]',
+    text: 'text-[#8FB69A]',
+    accent: '#8FB69A',
+    button: 'bg-[#8FB69A] hover:bg-[#A8D1B1] text-[#111312] font-semibold',
     Icon: TrendingUp,
   },
   HOLD: {
     label: 'HOLD',
-    badge: 'bg-[#f59e0b]/15 border-[#f59e0b]/40 text-[#fbbf24]',
-    text: 'text-[#fbbf24]',
-    accent: '#fbbf24',
-    button: 'bg-[#fbbf24] text-[#3b2a00]',
+    badge: 'bg-[#C7A65A]/15 border-[#C7A65A]/30 text-[#C7A65A]',
+    text: 'text-[#C7A65A]',
+    accent: '#C7A65A',
+    button: 'bg-[#C7A65A] hover:bg-[#d8b86d] text-[#111312] font-semibold',
     Icon: Minus,
   },
   'BACK OFF': {
     label: 'BACK OFF',
-    badge: 'bg-[#ef4444]/15 border-[#ef4444]/40 text-[#f87171]',
-    text: 'text-[#f87171]',
-    accent: '#f87171',
-    button: 'bg-[#f87171] text-[#3f0a0a]',
+    badge: 'bg-[#C86B68]/15 border-[#C86B68]/30 text-[#C86B68]',
+    text: 'text-[#C86B68]',
+    accent: '#C86B68',
+    button: 'bg-[#C86B68] hover:bg-[#d47c79] text-[#111312] font-semibold',
     Icon: ArrowDown,
   },
 };
+
 
 export function decisionTheme(decision: Decision): DecisionTheme {
   return THEMES[decision];
@@ -79,16 +80,33 @@ export interface RpeTier {
 
 export function rpeTier(rpe: number): RpeTier {
   if (rpe <= 3) {
-    return { label: 'Easy', badge: 'bg-[#00a572]/20 border-[#4edea3]/40 text-[#4edea3]', text: 'text-[#4edea3]' };
+    return {
+      label: 'Easy',
+      badge: 'bg-[#8FB69A]/15 border-[#8FB69A]/30 text-[#8FB69A]',
+      text: 'text-[#8FB69A]',
+    };
   }
   if (rpe <= 6) {
-    return { label: 'Moderate', badge: 'bg-[#38bdf8]/15 border-[#38bdf8]/40 text-[#38bdf8]', text: 'text-[#38bdf8]' };
+    return {
+      label: 'Moderate',
+      badge: 'bg-[#A8D1B1]/15 border-[#A8D1B1]/30 text-[#A8D1B1]',
+      text: 'text-[#A8D1B1]',
+    };
   }
   if (rpe <= 8) {
-    return { label: 'Hard', badge: 'bg-[#f59e0b]/15 border-[#f59e0b]/40 text-[#fbbf24]', text: 'text-[#fbbf24]' };
+    return {
+      label: 'Hard',
+      badge: 'bg-[#C7A65A]/15 border-[#C7A65A]/30 text-[#C7A65A]',
+      text: 'text-[#C7A65A]',
+    };
   }
-  return { label: 'Max effort', badge: 'bg-[#ef4444]/15 border-[#ef4444]/40 text-[#f87171]', text: 'text-[#f87171]' };
+  return {
+    label: 'Max effort',
+    badge: 'bg-[#C86B68]/15 border-[#C86B68]/30 text-[#C86B68]',
+    text: 'text-[#C86B68]',
+  };
 }
+
 
 /** "+2.5 kg" / "−7.5 kg", or null when unchanged. */
 export function weightDelta(from: number, to: number): string | null {

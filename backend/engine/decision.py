@@ -35,7 +35,8 @@ from __future__ import annotations
 
 from backend.engine.config import DEFAULT_CONFIG, EngineConfig
 from backend.engine.scoring import clamp
-from backend.engine.types import Decision, HistoryAnalysis, Prescription
+from backend.engine.types import Decision, HistoryAnalysis, Prescription, SetAutoregulationResult
+
 
 
 # --- signal ---------------------------------------------------------------
@@ -191,10 +192,95 @@ def prescription_pct_change(before: Prescription, after: Prescription) -> float:
     return 0.0 if b == 0 else round(100.0 * (a - b) / b, 1)
 
 
+def evaluate_set_overshoot(
+    set_index: int,
+    target_rpe: float,
+    actual_rpe: float,
+    current_weight: float,
+    current_reps: int,
+    weight_step: float = 2.5,
+    min_weight: float = 2.5,
+) -> SetAutoregulationResult:
+    """Evaluate intra-session fatigue or supercompensation on a completed set.
+
+    - If actual_rpe >= target_rpe + 2.0:
+        recommend a 5% load drop on remaining sets to avoid premature failure.
+    - If actual_rpe <= target_rpe - 2.5 on working set 1 (set_index == 1):
+        suggest an optional +2.5% progression jump for subsequent sets.
+    """
+    diff = round(actual_rpe - target_rpe, 1)
+
+    # Overshoot condition: +2.0 RPE above target
+    if actual_rpe >= target_rpe + 2.0:
+        raw_new_weight = current_weight * 0.95
+        new_weight = max(_round_to_step(raw_new_weight, weight_step), min_weight)
+        if new_weight == current_weight and current_weight - weight_step >= min_weight:
+            new_weight = current_weight - weight_step
+        delta_w = round(new_weight - current_weight, 2)
+        delta_pct = round(100.0 * (new_weight - current_weight) / current_weight, 1) if current_weight > 0 else 0.0
+
+        return SetAutoregulationResult(
+            triggered=True,
+            adjustment_type="LOAD_DROP",
+            recommended_weight=new_weight,
+            recommended_reps=current_reps,
+            delta_weight=delta_w,
+            delta_reps=0,
+            delta_pct=delta_pct,
+            message=(
+                f"Fatigue Stop: Set {set_index} RPE was {actual_rpe:g} (+{diff:g} above target {target_rpe:g}). "
+                f"Recommended 5% load drop ({new_weight:g} kg, {delta_w:g} kg) on remaining sets to avoid premature failure."
+            ),
+            target_rpe=target_rpe,
+            actual_rpe=actual_rpe,
+            set_index=set_index,
+        )
+
+    # Undershoot condition on Set 1: -2.5 RPE below target
+    if set_index == 1 and actual_rpe <= target_rpe - 2.5:
+        raw_new_weight = current_weight * 1.025
+        new_weight = max(_round_to_step(raw_new_weight, weight_step), current_weight + weight_step)
+        delta_w = round(new_weight - current_weight, 2)
+        delta_pct = round(100.0 * (new_weight - current_weight) / current_weight, 1) if current_weight > 0 else 0.0
+
+        return SetAutoregulationResult(
+            triggered=True,
+            adjustment_type="LOAD_INCREASE",
+            recommended_weight=new_weight,
+            recommended_reps=current_reps,
+            delta_weight=delta_w,
+            delta_reps=0,
+            delta_pct=delta_pct,
+            message=(
+                f"Athlete Primed: Set 1 RPE was {actual_rpe:g} (-{abs(diff):g} below target {target_rpe:g}). "
+                f"Optional +2.5% progression jump ({new_weight:g} kg, +{delta_w:g} kg) recommended for remaining sets."
+            ),
+            target_rpe=target_rpe,
+            actual_rpe=actual_rpe,
+            set_index=set_index,
+        )
+
+    return SetAutoregulationResult(
+        triggered=False,
+        adjustment_type="NONE",
+        recommended_weight=current_weight,
+        recommended_reps=current_reps,
+        delta_weight=0.0,
+        delta_reps=0,
+        delta_pct=0.0,
+        message=f"Set {set_index} completed within expected effort (RPE {actual_rpe:g} vs target {target_rpe:g}).",
+        target_rpe=target_rpe,
+        actual_rpe=actual_rpe,
+        set_index=set_index,
+    )
+
+
 __all__ = [
     "signal_strength",
     "compute_confidence",
     "decide",
     "next_prescription",
     "prescription_pct_change",
+    "evaluate_set_overshoot",
 ]
+

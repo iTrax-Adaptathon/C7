@@ -101,6 +101,42 @@ class ReasoningData:
 
 
 @dataclass(frozen=True)
+class AthleteState:
+    readiness_pct: int  # 0-100
+    performance_status: str  # "Improving" | "Stable" | "Declining"
+    fatigue_level: str  # "Low" | "Moderate" | "High"
+    recovery_status: str  # "Poor" | "Adequate" | "Good" | "Prime"
+    adaptation_status: str  # "Positive" | "Neutral" | "Fatigue Accumulation"
+    confidence_pct: int  # 0-100
+
+
+@dataclass(frozen=True)
+class PersonalBaseline:
+    typical_rpe: float
+    typical_score: float
+    typical_volume: float
+    typical_reps: float
+    sessions_analyzed: int
+
+
+@dataclass(frozen=True)
+class CounterfactualOption:
+    condition: str
+    resulting_action: str
+    explanation: str
+
+
+@dataclass(frozen=True)
+class SessionDelta:
+    perf_delta_pct: float
+    rpe_delta: float
+    volume_delta_pct: float
+    load_delta: float
+    reps_delta: int
+    sets_delta: int
+
+
+@dataclass(frozen=True)
 class EngineResult:
     decision: Decision
     confidence: int
@@ -111,3 +147,28 @@ class EngineResult:
     next: Prescription
     reasoning: ReasoningData
     explanation: str
+    component_breakdown: dict[str, float] = field(default_factory=dict)
+    triggered_rules: list[str] = field(default_factory=list)
+    coaching_rationale: str = ""
+    athlete_state: AthleteState | None = None
+    baseline: PersonalBaseline | None = None
+    counterfactuals: list[CounterfactualOption] = field(default_factory=list)
+    session_delta: SessionDelta | None = None
+
+
+@dataclass(frozen=True)
+class SetAutoregulationResult:
+    """Evaluation result of set RPE overshoot or undershoot."""
+
+    triggered: bool
+    adjustment_type: str  # "LOAD_DROP" | "LOAD_INCREASE" | "NONE"
+    recommended_weight: float
+    recommended_reps: int
+    delta_weight: float
+    delta_reps: int
+    delta_pct: float
+    message: str
+    target_rpe: float
+    actual_rpe: float
+    set_index: int
+

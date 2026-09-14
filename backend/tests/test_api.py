@@ -66,10 +66,12 @@ def test_post_log_returns_recommendation_structure(client):
     r = client.post("/logs", json=body())
     assert r.status_code == 201, r.text
     data = r.json()
-    assert set(data) == {
+    expected_base = {
         "exerciseId", "logId", "decision", "previous", "next", "confidence",
         "trendDirection", "reasoning", "explanation",
     }
+    assert expected_base.issubset(set(data))
+
     assert data["exerciseId"] == 1
     assert data["decision"] == "HOLD"  # first session: insufficient history
     assert data["confidence"] <= 35

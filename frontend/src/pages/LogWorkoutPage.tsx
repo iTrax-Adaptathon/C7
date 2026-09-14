@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { CheckCircle2, Loader2, Target, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronRight, Loader2, Sparkles, Target, X } from 'lucide-react';
 import { ApiError, submitWorkoutLog } from '../api';
 import { ErrorState } from '../components/ErrorState';
+import { PreWorkoutCheckInCard } from '../components/PreWorkoutCheckInCard';
 import { RpeSelector } from '../components/RpeSelector';
 import { Stepper } from '../components/Stepper';
-import type { Prescription, Recommendation } from '../types/api';
+import type { Prescription, Recommendation, SetAutoregulationOut } from '../types/api';
+import { evaluateSetOvershootClient } from '../utils/autoregulation';
 import { formatPrescription } from '../utils/format';
 
 interface LogWorkoutPageProps {
@@ -34,6 +36,11 @@ export function LogWorkoutPage({ exerciseId, exerciseName, planned, onCancel, on
   const [rpe, setRpe] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const [autoregAlert, setAutoregAlert] = useState<SetAutoregulationOut | null>(null);
+  const [showReadinessCheckIn, setShowReadinessCheckIn] = useState(true);
+
+  const targetRpe = 7.0; // standard baseline target effort
+
 
   const canSubmit = rpe != null && !submitting && weight > 0 && reps >= 1 && sets >= 1;
 
@@ -59,38 +66,113 @@ export function LogWorkoutPage({ exerciseId, exerciseName, planned, onCancel, on
     }
   };
 
+  const handleRpeChange = (newRpe: number) => {
+    setRpe(newRpe);
+    const evalResult = evaluateSetOvershootClient(1, targetRpe, newRpe, weight, reps, WEIGHT_STEP, MIN_WEIGHT);
+    if (evalResult.triggered) {
+      setAutoregAlert(evalResult);
+    } else {
+      setAutoregAlert(null);
+    }
+  };
+
+  const applyAutoreg = () => {
+    if (!autoregAlert) return;
+    setWeight(autoregAlert.recommendedWeight);
+    setAutoregAlert(null);
+  };
+
   return (
     <div className="flex flex-col gap-4 pb-8" id="view-log-workout">
       <div className="flex items-center justify-between pt-1">
         <button
-          id="btn-logger-cancel"
+          id="btn-cancel-log"
           type="button"
           onClick={onCancel}
           disabled={submitting}
-          className="flex items-center gap-2 h-11 px-4 rounded-xl bg-[#181d26] hover:bg-[#202734] active:scale-95 disabled:opacity-40 text-white font-semibold text-sm transition-all border border-slate-800"
+          className="flex items-center gap-2 h-10 px-4 rounded-xl bg-[#1D2520] hover:bg-[#20352A] active:scale-95 disabled:opacity-40 text-[#F1EDE3] font-medium text-sm transition-all border border-[#303832] cursor-pointer"
         >
           <X size={16} />
           Cancel
         </button>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Log session</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#B8B8AD] font-mono">Log session</span>
       </div>
 
-      <h1 className="text-2xl font-black text-white tracking-tight leading-tight">{exerciseName}</h1>
+      <h1 className="text-2xl font-black text-[#F1EDE3] tracking-tight leading-tight">{exerciseName}</h1>
 
       {/* Planned reference */}
-      <div className="rounded-2xl bg-[#38bdf8]/10 border border-[#38bdf8]/30 p-4 flex items-center gap-3">
-        <Target size={22} className="text-[#38bdf8] shrink-0" />
+      <div className="rounded-2xl bg-[#171C19] border border-[#303832] p-4 flex items-center gap-3 shadow-sm">
+        <Target size={22} className="text-[#8FB69A] shrink-0" />
         <div className="min-w-0">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[#38bdf8] font-mono">
-            {planned ? 'Planned (your recommendation)' : 'First session'}
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#8FB69A] font-mono">
+            {planned ? 'Target Prescription' : 'Introductory Session'}
           </div>
           {planned ? (
-            <div className="font-mono text-lg font-black text-white">{formatPrescription(planned)}</div>
+            <div className="font-mono text-lg font-black text-[#F1EDE3]">{formatPrescription(planned)}</div>
           ) : (
-            <div className="text-sm text-slate-300">Enter what you did — this becomes the plan for the next recommendation.</div>
+            <div className="text-sm text-[#B8B8AD]">Enter what you completed — this initializes the adaptive baseline.</div>
           )}
         </div>
       </div>
+
+      {/* Sprint 2: Pre-Workout Readiness Check-in Card */}
+      {showReadinessCheckIn && (
+        <PreWorkoutCheckInCard
+          initialPlan={planned}
+          onApplyAdjustment={(adjWeight) => {
+            setWeight(adjWeight);
+            setShowReadinessCheckIn(false);
+          }}
+        />
+      )}
+
+      {/* Intra-Session Set Autoregulation Notification Banner */}
+      {autoregAlert && autoregAlert.triggered && (
+        <div
+          className={`rounded-2xl border p-4 shadow-sm flex flex-col gap-2.5 transition-all animate-in fade-in slide-in-from-top-2 duration-300 ${
+            autoregAlert.adjustmentType === 'LOAD_DROP'
+              ? 'bg-[#C86B68]/15 border-[#C86B68]/30 text-[#F1EDE3]'
+              : 'bg-[#8FB69A]/15 border-[#8FB69A]/30 text-[#F1EDE3]'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {autoregAlert.adjustmentType === 'LOAD_DROP' ? (
+                <AlertTriangle size={18} className="text-[#C86B68] shrink-0 stroke-[2.5]" />
+              ) : (
+                <Sparkles size={18} className="text-[#8FB69A] shrink-0 stroke-[2.5]" />
+              )}
+              <span
+                className={`text-xs font-mono font-bold uppercase tracking-wide ${
+                  autoregAlert.adjustmentType === 'LOAD_DROP' ? 'text-[#C86B68]' : 'text-[#8FB69A]'
+                }`}
+              >
+                {autoregAlert.adjustmentType === 'LOAD_DROP'
+                  ? 'Fatigue Stop Triggered'
+                  : 'Autoregulated Supercompensation'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAutoregAlert(null)}
+              className="text-[#B8B8AD] hover:text-[#F1EDE3] p-1 cursor-pointer"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          <p className="text-xs leading-relaxed text-[#F1EDE3]">{autoregAlert.message}</p>
+
+          <button
+            type="button"
+            onClick={applyAutoreg}
+            className="h-9 px-3.5 rounded-xl font-mono text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all bg-[#8FB69A] hover:bg-[#A8D1B1] text-[#111312] shadow-sm cursor-pointer"
+          >
+            Apply {autoregAlert.recommendedWeight} kg ({autoregAlert.deltaWeight > 0 ? `+${autoregAlert.deltaWeight}` : autoregAlert.deltaWeight} kg)
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         <Stepper
@@ -103,7 +185,13 @@ export function LogWorkoutPage({ exerciseId, exerciseName, planned, onCancel, on
           unit="kg"
           decimals={2}
           planned={planned?.weight}
-          onChange={setWeight}
+          onChange={(w) => {
+            setWeight(w);
+            if (rpe != null) {
+              const res = evaluateSetOvershootClient(1, targetRpe, rpe, w, reps, WEIGHT_STEP, MIN_WEIGHT);
+              setAutoregAlert(res.triggered ? res : null);
+            }
+          }}
         />
         <Stepper
           id="actual-reps"
@@ -114,7 +202,13 @@ export function LogWorkoutPage({ exerciseId, exerciseName, planned, onCancel, on
           min={1}
           unit="reps"
           planned={planned?.reps}
-          onChange={setReps}
+          onChange={(r) => {
+            setReps(r);
+            if (rpe != null) {
+              const res = evaluateSetOvershootClient(1, targetRpe, rpe, weight, r, WEIGHT_STEP, MIN_WEIGHT);
+              setAutoregAlert(res.triggered ? res : null);
+            }
+          }}
         />
         <Stepper
           id="actual-sets"
@@ -127,7 +221,7 @@ export function LogWorkoutPage({ exerciseId, exerciseName, planned, onCancel, on
           planned={planned?.sets}
           onChange={setSets}
         />
-        <RpeSelector value={rpe} onChange={setRpe} />
+        <RpeSelector value={rpe} onChange={handleRpeChange} />
       </div>
 
       {error && <ErrorState error={error} compact />}
@@ -137,22 +231,22 @@ export function LogWorkoutPage({ exerciseId, exerciseName, planned, onCancel, on
         type="button"
         onClick={submit}
         disabled={!canSubmit}
-        className="w-full h-16 rounded-full bg-[#4edea3] hover:bg-[#3ec48e] active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 text-[#003824] font-black text-base uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-[#4edea3]/20 transition-all"
+        className="w-full h-14 rounded-xl bg-[#8FB69A] hover:bg-[#A8D1B1] active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100 disabled:cursor-not-allowed text-[#111312] font-bold text-sm tracking-wide flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
       >
         {submitting ? (
           <>
-            <Loader2 size={22} className="animate-spin" />
+            <Loader2 size={20} className="animate-spin" />
             Analyzing your recent sessions…
           </>
         ) : (
           <>
-            <CheckCircle2 size={22} className="stroke-[2.5]" />
+            <CheckCircle2 size={20} className="stroke-[2.5]" />
             {error ? 'Retry — Log workout' : 'Log workout'}
           </>
         )}
       </button>
       {rpe == null && !submitting && (
-        <p className="text-center text-xs text-slate-500 -mt-2">Pick an RPE to enable logging.</p>
+        <p className="text-center text-xs text-[#B8B8AD] -mt-2">Pick an RPE to enable logging.</p>
       )}
     </div>
   );

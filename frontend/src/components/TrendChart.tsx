@@ -20,7 +20,7 @@ const H = 120;
 const PAD_X = 14;
 const PAD_TOP = 18;
 const PAD_BOTTOM = 10;
-const LINE = '#38bdf8';
+const LINE = '#8FB69A';
 
 /**
  * Single-series line over the real session history. One metric at a time
@@ -37,7 +37,7 @@ export function TrendChart({ logs }: TrendChartProps) {
 
   if (logs.length === 0) {
     return (
-      <div className="w-full h-28 bg-[#11151c] border border-slate-800/70 rounded-xl flex items-center justify-center text-sm text-slate-500">
+      <div className="w-full h-28 bg-[#111312] border border-[#303832] rounded-xl flex items-center justify-center text-sm text-[#B8B8AD]">
         No sessions logged yet.
       </div>
     );
@@ -77,10 +77,10 @@ export function TrendChart({ logs }: TrendChartProps) {
               setMetric(opt.id);
               setHover(null);
             }}
-            className={`h-8 px-3 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider border transition-all ${
+            className={`h-8 px-3 rounded-full text-[11px] font-mono font-semibold uppercase tracking-wider border transition-all cursor-pointer ${
               metric === opt.id
-                ? 'bg-[#38bdf8]/15 border-[#38bdf8]/50 text-[#38bdf8]'
-                : 'bg-[#11151c] border-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-[#8FB69A] text-[#111312] border-[#8FB69A] shadow-sm'
+                : 'bg-[#111312] border-[#303832] text-[#B8B8AD] hover:text-[#F1EDE3] hover:bg-[#1D2520]'
             }`}
           >
             {opt.label}
@@ -88,12 +88,12 @@ export function TrendChart({ logs }: TrendChartProps) {
         ))}
       </div>
 
-      <div className="w-full bg-[#11151c] border border-slate-800/70 rounded-xl p-2 relative overflow-hidden">
+      <div className="w-full bg-[#111312] border border-[#303832] rounded-xl p-2 relative overflow-hidden">
         <div className="flex items-baseline justify-between px-1 pb-1 font-mono">
-          <span className="text-[10px] uppercase tracking-wider text-slate-500">
+          <span className="text-[10px] uppercase tracking-wider text-[#B8B8AD]">
             {formatDate(activePt.log.loggedAt)} · {formatTime(activePt.log.loggedAt)}
           </span>
-          <span className="text-sm font-bold text-white">{m.fmt(activePt.value)}</span>
+          <span className="text-sm font-bold text-[#F1EDE3]">{m.fmt(activePt.value)}</span>
         </div>
         <svg
           className="w-full h-auto"
@@ -104,7 +104,7 @@ export function TrendChart({ logs }: TrendChartProps) {
         >
           <defs>
             <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={LINE} stopOpacity="0.28" />
+              <stop offset="0%" stopColor={LINE} stopOpacity="0.3" />
               <stop offset="100%" stopColor={LINE} stopOpacity="0" />
             </linearGradient>
           </defs>
@@ -117,17 +117,17 @@ export function TrendChart({ logs }: TrendChartProps) {
           )}
 
           {hover != null && (
-            <line x1={activePt.x} x2={activePt.x} y1={PAD_TOP - 6} y2={H - PAD_BOTTOM} stroke="#475569" strokeWidth="1" strokeDasharray="3 3" />
+            <line x1={activePt.x} x2={activePt.x} y1={PAD_TOP - 6} y2={H - PAD_BOTTOM} stroke="#8FB69A" strokeWidth="1" strokeDasharray="3 3" />
           )}
 
           {pts.map((p, i) => (
             <g key={p.log.id}>
               {labelled.has(i) && (
-                <text x={p.x} y={p.y - 9} textAnchor="middle" fontSize="9" fontFamily="JetBrains Mono, monospace" fill="#e0e2ea" fontWeight="bold">
+                <text x={p.x} y={p.y - 9} textAnchor="middle" fontSize="9" fontFamily="JetBrains Mono, monospace" fill="#F1EDE3" fontWeight="bold">
                   {Number.isInteger(p.value) ? p.value : p.value.toFixed(1)}
                 </text>
               )}
-              <circle cx={p.x} cy={p.y} r={i === active ? 5 : 4} fill={i === last ? '#4edea3' : LINE} stroke="#11151c" strokeWidth="2" />
+              <circle cx={p.x} cy={p.y} r={i === active ? 5 : 4} fill={i === last ? '#A8D1B1' : LINE} stroke="#111312" strokeWidth="2" />
               {/* enlarged hit target */}
               <rect
                 x={p.x - Math.max(8, plotW / logs.length / 2)}
@@ -141,9 +141,9 @@ export function TrendChart({ logs }: TrendChartProps) {
             </g>
           ))}
         </svg>
-        <div className="flex justify-between px-1 pt-1 font-mono text-[10px] text-slate-500">
+        <div className="flex justify-between px-1 pt-1 font-mono text-[10px] text-[#B8B8AD]">
           <span>{formatDate(logs[0].loggedAt)}</span>
-          {logs.length > 1 && <span className="text-[#4edea3] font-bold">{formatDate(logs[last].loggedAt)}</span>}
+          {logs.length > 1 && <span className="text-emerald-400 font-semibold">{formatDate(logs[last].loggedAt)}</span>}
         </div>
       </div>
     </div>

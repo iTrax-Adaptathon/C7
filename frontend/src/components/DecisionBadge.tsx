@@ -10,13 +10,14 @@ interface DecisionBadgeProps {
 export function DecisionBadge({ decision, size = 'sm' }: DecisionBadgeProps) {
   const theme = decisionTheme(decision);
   const Icon = theme.Icon;
-  const sizing = size === 'lg' ? 'px-4 py-2 text-base gap-2' : 'px-2.5 py-1 text-[11px] gap-1.5';
+  const sizing = size === 'lg' ? 'px-4 py-1.5 text-sm gap-2 font-bold' : 'px-2.5 py-1 text-xs gap-1.5 font-semibold';
   return (
     <span
-      className={`inline-flex items-center rounded-full border font-mono font-bold uppercase tracking-wider ${sizing} ${theme.badge}`}
+      className={`inline-flex items-center rounded-full border uppercase tracking-wide font-mono ${sizing} ${theme.badge}`}
     >
-      <Icon size={size === 'lg' ? 18 : 13} className="stroke-[2.5]" />
+      <Icon size={size === 'lg' ? 16 : 12} className="stroke-[2.5]" />
       {theme.label}
     </span>
   );
 }
+

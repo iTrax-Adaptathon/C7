@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend import models  # noqa: F401  (registers tables on Base.metadata)
 from backend.database import Base, engine
-from backend.routes import adaptations, exercises, logs, state
+from backend.routes import adaptations, exercises, logs, readiness, state
 from backend.schemas import HealthOut
 from backend.settings import cors_origins
 
@@ -47,6 +47,8 @@ def create_app() -> FastAPI:
     app.include_router(logs.router)
     app.include_router(state.router)
     app.include_router(adaptations.router)
+    app.include_router(readiness.router)
+
 
     @app.get("/health", response_model=HealthOut, tags=["meta"])
     def health() -> HealthOut:

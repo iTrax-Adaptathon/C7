@@ -25,11 +25,11 @@ export function formatPrescription(p: Prescription): string {
 }
 
 export function formatDate(iso: string): string {
-  return parseUtc(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return parseUtc(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 export function formatTime(iso: string): string {
-  return parseUtc(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return parseUtc(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
 /** Local calendar day, used to group history rows. */
@@ -51,8 +51,9 @@ export function formatDayLabel(iso: string): string {
   const now = new Date();
   if (key === dayKeyOf(now)) return 'Today';
   if (key === dayKeyOf(new Date(now.getTime() - 24 * 3600 * 1000))) return 'Yesterday';
-  return parseUtc(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  return parseUtc(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
+
 
 export function formatScore(score: number): string {
   return `${Math.round(score)}`;

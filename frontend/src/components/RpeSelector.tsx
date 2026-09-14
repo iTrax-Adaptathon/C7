@@ -12,17 +12,17 @@ export function RpeSelector({ value, onChange }: RpeSelectorProps) {
   const tier = value == null ? null : rpeTier(value);
 
   return (
-    <div className="rounded-2xl bg-[#181d26] border border-slate-800/80 p-4 shadow-md flex flex-col gap-3">
+    <div className="rounded-2xl bg-[#171C19] border border-[#303832] p-4 shadow-sm flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-mono">
-          How hard was it? (RPE)
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#B8B8AD] font-mono">
+          Effort Rating (RPE 1–10)
         </span>
         <span
-          className={`px-2.5 py-0.5 rounded-full border text-xs font-mono font-bold uppercase ${
-            tier ? tier.badge : 'border-slate-700 text-slate-500'
+          className={`px-2.5 py-0.5 rounded-full border text-xs font-mono font-bold uppercase transition-all ${
+            tier ? tier.badge : 'border-[#303832] text-[#7A7E77]'
           }`}
         >
-          {tier && value != null ? `RPE ${value} • ${tier.label}` : 'Pick 1–10'}
+          {tier && value != null ? `RPE ${value} • ${tier.label}` : 'Select Effort'}
         </span>
       </div>
 
@@ -38,10 +38,10 @@ export function RpeSelector({ value, onChange }: RpeSelectorProps) {
               role="radio"
               aria-checked={active}
               onClick={() => onChange(v)}
-              className={`h-14 rounded-xl font-mono text-lg font-bold active:scale-95 transition-all flex items-center justify-center border ${
+              className={`h-14 rounded-xl font-mono text-lg font-bold active:scale-90 transition-all flex items-center justify-center border cursor-pointer ${
                 active
-                  ? 'bg-[#38bdf8] text-[#051c2c] border-[#38bdf8] shadow-md shadow-[#38bdf8]/30 scale-[1.03]'
-                  : `bg-[#11151c] border-slate-800 hover:bg-[#1c222c] ${t.text}`
+                  ? 'bg-[#8FB69A] text-[#111312] border-[#8FB69A] shadow-md scale-[1.03]'
+                  : `bg-[#111312] border-[#303832] hover:bg-[#1D2520] hover:text-[#F1EDE3] ${t.text}`
               }`}
             >
               {v}
@@ -50,11 +50,11 @@ export function RpeSelector({ value, onChange }: RpeSelectorProps) {
         })}
       </div>
 
-      <div className="grid grid-cols-4 text-center font-mono text-[10px] gap-1">
-        <span className="text-[#4edea3]">1–3 Easy</span>
-        <span className="text-[#38bdf8]">4–6 Moderate</span>
-        <span className="text-[#fbbf24]">7–8 Hard</span>
-        <span className="text-[#f87171]">9–10 Max effort</span>
+      <div className="grid grid-cols-4 text-center font-mono text-[10px] gap-1 pt-0.5">
+        <span className="text-[#8FB69A]">1–3 Easy</span>
+        <span className="text-[#A8D1B1]">4–6 Moderate</span>
+        <span className="text-[#C7A65A]">7–8 Hard</span>
+        <span className="text-[#C86B68]">9–10 Max</span>
       </div>
     </div>
   );

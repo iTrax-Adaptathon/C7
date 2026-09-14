@@ -17,15 +17,40 @@ from __future__ import annotations
 
 from backend.engine.analysis import analyze_history
 from backend.engine.config import DEFAULT_CONFIG, EngineConfig
-from backend.engine.decision import compute_confidence, decide, next_prescription, signal_strength
+from backend.engine.decision import (
+    compute_confidence,
+    decide,
+    evaluate_set_overshoot,
+    next_prescription,
+    signal_strength,
+)
 from backend.engine.explanation import explain
+from backend.engine.readiness import (
+    calculate_adjusted_load,
+    calculate_readiness_modifier,
+    generate_readiness_message,
+)
+from backend.engine.rules import (
+    build_coaching_rationale,
+    compute_component_breakdown,
+    compute_personal_baseline,
+    compute_session_delta,
+    estimate_athlete_state,
+    extract_triggered_rules,
+    generate_counterfactuals,
+)
 from backend.engine.scoring import session_score
 from backend.engine.types import (
+    AthleteState,
+    CounterfactualOption,
     Decision,
     EngineResult,
+    PersonalBaseline,
     Prescription,
     ReasoningData,
+    SessionDelta,
     SessionInput,
+    SetAutoregulationResult,
     TrendDirection,
 )
 
@@ -43,6 +68,24 @@ def evaluate(
     window = sessions[-config.window_size :]
     sessions_at_plan = sum(1 for s in window if s.planned == base)
     nxt = next_prescription(base, decision, signal, config, sessions_at_plan)
+
+    breakdown_data = compute_component_breakdown(analysis, config)
+    component_breakdown = {
+        "perf_trend": breakdown_data.perf_trend,
+        "score_level": breakdown_data.score_level,
+        "rpe_signal": breakdown_data.rpe_signal,
+        "volume_trend": breakdown_data.volume_trend,
+    }
+    rules = extract_triggered_rules(
+        analysis, signal, confidence, decision, base, nxt, config
+    )
+    rationale = build_coaching_rationale(
+        decision, analysis, signal, confidence, rules, base, nxt
+    )
+    athlete_state = estimate_athlete_state(analysis, signal, confidence, decision)
+    baseline = compute_personal_baseline(sessions, config)
+    counterfactuals = generate_counterfactuals(decision, analysis, signal, confidence, base, nxt)
+    session_delta = compute_session_delta(sessions, base, nxt)
 
     reasoning = ReasoningData(
         decision=decision,
@@ -70,6 +113,13 @@ def evaluate(
         next=nxt,
         reasoning=reasoning,
         explanation=explain(decision, reasoning),
+        component_breakdown=component_breakdown,
+        triggered_rules=rules,
+        coaching_rationale=rationale,
+        athlete_state=athlete_state,
+        baseline=baseline,
+        counterfactuals=counterfactuals,
+        session_delta=session_delta,
     )
 
 
@@ -84,4 +134,10 @@ __all__ = [
     "SessionInput",
     "EngineResult",
     "ReasoningData",
+    "SetAutoregulationResult",
+    "evaluate_set_overshoot",
+    "calculate_readiness_modifier",
+    "calculate_adjusted_load",
+    "generate_readiness_message",
 ]
+

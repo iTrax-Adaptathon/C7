@@ -93,6 +93,62 @@ class LogHistoryOut(CamelModel):
 
 # --- recommendation (POST /logs response) -------------------------------------
 
+# --- athlete state, baseline, counterfactuals, session delta (Hackathon Sprint) ---
+
+class AthleteStateOut(CamelModel):
+    readiness_pct: int
+    performance_status: str
+    fatigue_level: str
+    recovery_status: str
+    adaptation_status: str
+    confidence_pct: int
+
+
+class PersonalBaselineOut(CamelModel):
+    typical_rpe: float
+    typical_score: float
+    typical_volume: float
+    typical_reps: float
+    sessions_analyzed: int
+
+
+class CounterfactualOut(CamelModel):
+    condition: str
+    resulting_action: str
+    explanation: str
+
+
+class SessionDeltaOut(CamelModel):
+    perf_delta_pct: float
+    rpe_delta: float
+    volume_delta_pct: float
+    load_delta: float
+    reps_delta: int
+    sets_delta: int
+
+
+class ComponentBreakdownOut(CamelModel):
+    perf_trend: float
+    score_level: float
+    rpe_signal: float
+    volume_trend: float
+
+
+class GlassBoxMetadata(CamelModel):
+    action: DecisionLiteral
+    recommended_load: float
+    recommended_reps: int
+    signal_score: float
+    confidence: float
+    component_breakdown: ComponentBreakdownOut
+    triggered_rules: list[str]
+    coaching_rationale: str
+    athlete_state: AthleteStateOut | None = None
+    baseline: PersonalBaselineOut | None = None
+    counterfactuals: list[CounterfactualOut] = Field(default_factory=list)
+    session_delta: SessionDeltaOut | None = None
+
+
 class ReasoningOut(CamelModel):
     session_count: int
     session_score: float
@@ -116,6 +172,76 @@ class RecommendationOut(CamelModel):
     reasoning: ReasoningOut
     explanation: str
 
+    # Glass-box explainability fields (Sprint 2)
+    action: DecisionLiteral | None = None
+    recommended_load: float | None = None
+    recommended_reps: int | None = None
+    signal_score: float | None = None
+    component_breakdown: ComponentBreakdownOut | None = None
+    triggered_rules: list[str] = Field(default_factory=list)
+    coaching_rationale: str | None = None
+    glass_box: GlassBoxMetadata | None = None
+
+    # Athlete state, baseline, counterfactuals, session delta
+    athlete_state: AthleteStateOut | None = None
+    baseline: PersonalBaselineOut | None = None
+    counterfactuals: list[CounterfactualOut] = Field(default_factory=list)
+    session_delta: SessionDeltaOut | None = None
+
+
+# --- pre-workout readiness (Sprint 2) ------------------------------------------
+
+class PreWorkoutCheckIn(CamelModel):
+    sleep_rating: int = Field(..., ge=1, le=5, description="Sleep quality 1-5")
+    soreness_rating: int = Field(..., ge=1, le=5, description="Muscle freshness 1-5 (1=very sore, 5=fresh)")
+    stress_rating: int = Field(..., ge=1, le=5, description="Low stress / energy 1-5 (1=high stress, 5=low stress)")
+    target_load: float | None = Field(default=None, description="Optional target load in kg")
+    target_reps: int | None = Field(default=None, description="Optional target reps")
+    target_sets: int | None = Field(default=None, description="Optional target sets")
+
+
+class ReadinessOut(CamelModel):
+    exercise_id: int | None = None
+    sleep_rating: int
+    soreness_rating: int
+    stress_rating: int
+    readiness_modifier: float
+    readiness_score: int
+    original_load: float
+    adjusted_load: float
+    original_reps: int
+    adjusted_reps: int
+    original_sets: int
+    adjusted_sets: int
+    status: str
+    message: str
+
+
+# --- intra-session set autoregulation (Sprint 2) -------------------------------
+
+class SetAutoregulationIn(CamelModel):
+    set_index: int = Field(..., ge=1, description="1-based set number")
+    target_rpe: float = Field(..., ge=1.0, le=10.0, description="Planned/target RPE")
+    actual_rpe: float = Field(..., ge=1.0, le=10.0, description="Actual logged RPE")
+    current_weight: float = Field(..., gt=0.0, description="Working weight in kg")
+    current_reps: int = Field(..., ge=1, description="Working reps")
+    weight_step: float = Field(default=2.5, description="Plate increment step")
+
+
+class SetAutoregulationOut(CamelModel):
+    triggered: bool
+    adjustment_type: str
+    recommended_weight: float
+    recommended_reps: int
+    delta_weight: float
+    delta_reps: int
+    delta_pct: float
+    message: str
+    target_rpe: float
+    actual_rpe: float
+    set_index: int
+
+
 
 # --- state -------------------------------------------------------------------
 
@@ -129,6 +255,13 @@ class StateOut(CamelModel):
     current: PrescriptionOut
     explanation: str
     updated_at: datetime
+    athlete_state: AthleteStateOut | None = None
+    baseline: PersonalBaselineOut | None = None
+    counterfactuals: list[CounterfactualOut] = Field(default_factory=list)
+    session_delta: SessionDeltaOut | None = None
+    component_breakdown: ComponentBreakdownOut | None = None
+    triggered_rules: list[str] = Field(default_factory=list)
+    coaching_rationale: str | None = None
 
 
 # --- adaptations ---------------------------------------------------------------

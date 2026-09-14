@@ -52,3 +52,25 @@ export function submitWorkoutLog(body: LogCreate): Promise<Recommendation> {
   if (body.loggedAt) payload.loggedAt = body.loggedAt;
   return request<Recommendation>('/logs', { method: 'POST', body: payload });
 }
+
+/** Pre-workout readiness check-in: dynamically scales the working load by sleep, soreness, and stress ratings. */
+export function submitReadinessCheckIn(
+  sessionIdOrExerciseId: number,
+  data: import('../types/api').PreWorkoutCheckIn,
+): Promise<import('../types/api').ReadinessOut> {
+  return request<import('../types/api').ReadinessOut>(`/api/sessions/${sessionIdOrExerciseId}/readiness`, {
+    method: 'POST',
+    body: data,
+  });
+}
+
+/** Evaluate a completed set for fatigue stop or supercompensation boost. */
+export function evaluateSetAutoregulation(
+  data: import('../types/api').SetAutoregulationIn,
+): Promise<import('../types/api').SetAutoregulationOut> {
+  return request<import('../types/api').SetAutoregulationOut>('/api/autoregulation/evaluate', {
+    method: 'POST',
+    body: data,
+  });
+}
+

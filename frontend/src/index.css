@@ -1,19 +1,79 @@
 @import "tailwindcss";
 
+:root {
+  /* Backgrounds & Canvas (Luxury Sports Science Laboratory) */
+  --bg-app: #111312;            /* Canvas */
+  --bg-card: #171C19;           /* Primary card */
+  --bg-card-hover: #1C231F;     /* Hover surface */
+  --bg-surface-elevated: #1D2520;/* Elevated card */
+  --bg-surface-subtle: #20352A;  /* Deep Sage surface */
+
+  /* Sage Brand */
+  --deep-sage: #20352A;
+  --primary-sage: #8FB69A;
+  --bright-sage: #A8D1B1;
+
+  /* Borders & Dividers */
+  --border-subtle: rgba(241, 237, 227, 0.08);
+  --border-card: #303832;
+  --border-focus: #8FB69A;
+
+  /* Typography */
+  --text-primary: #F1EDE3;      /* Warm Ivory */
+  --text-secondary: #B8B8AD;    /* Muted Sage / Sand */
+  --text-muted: #7A7E77;        /* Captions */
+
+  /* Tri-State & Status Semantics */
+  --status-progress-bg: rgba(143, 182, 154, 0.14);
+  --status-progress-text: #8FB69A;   /* Primary Sage */
+  --status-progress-border: rgba(143, 182, 154, 0.35);
+
+  --status-hold-bg: rgba(199, 166, 90, 0.14);
+  --status-hold-text: #C7A65A;       /* Muted Gold */
+  --status-hold-border: rgba(199, 166, 90, 0.35);
+
+  --status-backoff-bg: rgba(200, 107, 104, 0.14);
+  --status-backoff-text: #C86B68;    /* Muted Terracotta */
+  --status-backoff-border: rgba(200, 107, 104, 0.35);
+}
+
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  --color-canvas: #111312;
+  --color-card: #171C19;
+  --color-card-hover: #1C231F;
+  --color-elevated: #1D2520;
+  --color-deepsage: #20352A;
+  --color-sage: #8FB69A;
+  --color-brightsage: #A8D1B1;
+  --color-ivory: #F1EDE3;
+  --color-muted: #B8B8AD;
+  --color-border: #303832;
+  --color-gold: #C7A65A;
+  --color-terracotta: #C86B68;
 }
 
 @layer base {
-  body {
+  html, body {
     font-family: var(--font-sans);
-    background-color: #0b0e13;
-    color: #e0e2ea;
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: contain;
+  }
+
+  button, input, select, textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
-/* Hide scrollbars while preserving scrolling */
+/* Mobile & Web App scrollbar enhancements */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -22,3 +82,63 @@
   scrollbar-width: none;
 }
 
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #111312;
+}
+::-webkit-scrollbar-thumb {
+  background: #273229;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8FB69A;
+}
+
+/* Custom range slider styling for sports science precision */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  background-color: #20352A;
+  border-radius: 9999px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background-color: #8FB69A;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
+  margin-top: -6px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background-color: #A8D1B1;
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  background-color: #20352A;
+  border-radius: 9999px;
+}
+input[type="range"]::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background-color: #8FB69A;
+  border: none;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+input[type="range"]:focus {
+  outline: none;
+}

@@ -18,65 +18,74 @@ export function ExerciseCard({ state, onLog, onDetails }: ExerciseCardProps) {
   return (
     <article
       id={`exercise-card-${state.exerciseId}`}
-      className="rounded-2xl bg-[#181d26] border border-slate-800/80 shadow-md overflow-hidden flex"
+      className="rounded-2xl bg-[#171C19] border border-[#303832] shadow-lg shadow-black/40 overflow-hidden flex transition-all duration-200 hover:border-[#8FB69A]/30"
     >
       <div className="w-1.5 shrink-0" style={{ backgroundColor: theme.accent }} aria-hidden />
 
-      <div className="flex-1 p-4 flex flex-col gap-3 min-w-0">
+      <div className="flex-1 p-4 sm:p-5 flex flex-col gap-3.5 min-w-0">
         <div className="flex items-start justify-between gap-3">
           <button
             type="button"
             onClick={() => onDetails(state.exerciseId)}
             className="text-left min-w-0 group"
           >
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#B8B8AD] font-mono">
               {state.muscleGroup}
             </div>
-            <h3 className="text-lg font-bold text-white leading-tight truncate group-hover:text-[#38bdf8] transition-colors">
+            <h3 className="text-lg font-bold text-[#F1EDE3] leading-tight truncate group-hover:text-[#8FB69A] transition-colors">
               {state.exerciseName}
             </h3>
           </button>
           <DecisionBadge decision={state.decision} />
         </div>
 
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono mb-1">Next session</div>
+        <div className="bg-[#1D2520] p-3 rounded-xl border border-[#303832]">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#B8B8AD] font-mono mb-1">Prescription</div>
           <PrescriptionDisplay prescription={state.current} />
         </div>
 
-        <div className="flex items-center gap-3 font-mono text-[11px] text-slate-400">
+        <div className="flex items-center flex-wrap gap-2.5 font-mono text-[11px] text-[#B8B8AD]">
           <span>
             <span className={`font-bold ${theme.text}`}>{state.confidence}%</span> confidence
           </span>
-          <span aria-hidden>·</span>
-          <span>
+          <span aria-hidden className="text-[#303832]">·</span>
+          <span className="text-[#F1EDE3]">
             {trendGlyph(state.trendDirection)} {trendLabel(state.trendDirection)}
           </span>
-          <span aria-hidden>·</span>
+          <span aria-hidden className="text-[#303832]">·</span>
           <span>Updated {formatDayLabel(state.updatedAt)}</span>
+          {state.athleteState && (
+            <>
+              <span aria-hidden className="text-[#303832]">·</span>
+              <span className="text-[#8FB69A] font-semibold">
+                Readiness {state.athleteState.readinessPct}%
+              </span>
+            </>
+          )}
         </div>
 
-        <div className="flex gap-2 pt-1">
+        <div className="flex gap-2.5 pt-1">
           <button
             id={`btn-log-${state.exerciseId}`}
             type="button"
             onClick={() => onLog(state)}
-            className="flex-1 h-12 rounded-full bg-[#38bdf8] hover:bg-[#5ccbff] active:scale-[0.98] text-[#051c2c] font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#38bdf8]/20 transition-all"
+            className="flex-1 h-11 rounded-xl bg-[#8FB69A] hover:bg-[#A8D1B1] text-[#111312] font-semibold text-xs tracking-wide flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.99] cursor-pointer"
           >
-            <Plus size={16} className="stroke-[3]" />
+            <Plus size={15} className="stroke-[2.5]" />
             Log session
           </button>
           <button
             id={`btn-details-${state.exerciseId}`}
             type="button"
             onClick={() => onDetails(state.exerciseId)}
-            className="h-12 px-4 rounded-full bg-[#1e2735] hover:bg-[#28324a] active:scale-[0.98] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-slate-700 transition-all"
+            className="h-11 px-4 rounded-xl bg-[#1D2520] hover:bg-[#20352A] text-[#F1EDE3] font-medium text-xs tracking-wide flex items-center justify-center gap-1 border border-[#303832] transition-all active:scale-[0.99] cursor-pointer"
           >
             Details
-            <ChevronRight size={14} />
+            <ChevronRight size={14} className="text-[#B8B8AD]" />
           </button>
         </div>
       </div>
     </article>
   );
+
 }

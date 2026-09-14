@@ -17,14 +17,21 @@ from backend.engine.types import Prescription, SessionInput
 from backend.models import Adaptation, ExerciseState, WorkoutLog
 from backend.schemas import (
     AdaptationOut,
+    AthleteStateOut,
+    ComponentBreakdownOut,
+    CounterfactualOut,
+    GlassBoxMetadata,
     LogCreate,
     LogHistoryOut,
     LogOut,
+    PersonalBaselineOut,
     PrescriptionOut,
     ReasoningOut,
     RecommendationOut,
+    SessionDeltaOut,
     StateOut,
 )
+
 
 
 def utcnow() -> datetime:
@@ -123,6 +130,70 @@ def process_workout_log(
     db.commit()
 
     r = result.reasoning
+    breakdown_out = ComponentBreakdownOut(
+        perf_trend=result.component_breakdown.get("perf_trend", 0.0),
+        score_level=result.component_breakdown.get("score_level", 0.0),
+        rpe_signal=result.component_breakdown.get("rpe_signal", 0.0),
+        volume_trend=result.component_breakdown.get("volume_trend", 0.0),
+    )
+    athlete_state_out = (
+        AthleteStateOut(
+            readiness_pct=result.athlete_state.readiness_pct,
+            performance_status=result.athlete_state.performance_status,
+            fatigue_level=result.athlete_state.fatigue_level,
+            recovery_status=result.athlete_state.recovery_status,
+            adaptation_status=result.athlete_state.adaptation_status,
+            confidence_pct=result.athlete_state.confidence_pct,
+        )
+        if result.athlete_state
+        else None
+    )
+    baseline_out = (
+        PersonalBaselineOut(
+            typical_rpe=result.baseline.typical_rpe,
+            typical_score=result.baseline.typical_score,
+            typical_volume=result.baseline.typical_volume,
+            typical_reps=result.baseline.typical_reps,
+            sessions_analyzed=result.baseline.sessions_analyzed,
+        )
+        if result.baseline
+        else None
+    )
+    counterfactuals_out = [
+        CounterfactualOut(
+            condition=c.condition,
+            resulting_action=c.resulting_action.value if hasattr(c.resulting_action, "value") else str(c.resulting_action),
+            explanation=c.explanation,
+        )
+        for c in result.counterfactuals
+    ] if result.counterfactuals else []
+    session_delta_out = (
+        SessionDeltaOut(
+            perf_delta_pct=result.session_delta.perf_delta_pct,
+            rpe_delta=result.session_delta.rpe_delta,
+            volume_delta_pct=result.session_delta.volume_delta_pct,
+            load_delta=result.session_delta.load_delta,
+            reps_delta=result.session_delta.reps_delta,
+            sets_delta=result.session_delta.sets_delta,
+        )
+        if result.session_delta
+        else None
+    )
+    glass_box = GlassBoxMetadata(
+        action=result.decision.value,
+        recommended_load=result.next.weight,
+        recommended_reps=result.next.reps,
+        signal_score=result.signal_strength,
+        confidence=round(result.confidence / 100.0, 2),
+        component_breakdown=breakdown_out,
+        triggered_rules=result.triggered_rules,
+        coaching_rationale=result.coaching_rationale or result.explanation,
+        athlete_state=athlete_state_out,
+        baseline=baseline_out,
+        counterfactuals=counterfactuals_out,
+        session_delta=session_delta_out,
+    )
+
     return RecommendationOut(
         exercise_id=exercise.id,
         log_id=log.id,
@@ -143,7 +214,20 @@ def process_workout_log(
             signal_strength=r.signal_strength,
         ),
         explanation=result.explanation,
+        action=result.decision.value,
+        recommended_load=result.next.weight,
+        recommended_reps=result.next.reps,
+        signal_score=result.signal_strength,
+        component_breakdown=breakdown_out,
+        triggered_rules=result.triggered_rules,
+        coaching_rationale=result.coaching_rationale or result.explanation,
+        glass_box=glass_box,
+        athlete_state=athlete_state_out,
+        baseline=baseline_out,
+        counterfactuals=counterfactuals_out,
+        session_delta=session_delta_out,
     )
+
 
 
 def log_history(db: Session, exercise_id: int, limit: int) -> LogHistoryOut:
@@ -173,7 +257,65 @@ def log_history(db: Session, exercise_id: int, limit: int) -> LogHistoryOut:
     )
 
 
-def state_out(state: ExerciseState) -> StateOut:
+def state_out(state: ExerciseState, db: Session | None = None) -> StateOut:
+    athlete_state_out = None
+    baseline_out = None
+    counterfactuals_out = []
+    session_delta_out = None
+    breakdown_out = None
+    triggered_rules = []
+    coaching_rationale = None
+
+    if db is not None:
+        logs = crud.recent_logs(db, state.exercise_id, 10)
+        if logs:
+            sessions = [_to_session_input(l) for l in logs]
+            base_p = Prescription(weight=state.current_weight, reps=state.current_reps, sets=state.current_sets)
+            res = evaluate(sessions, base_p)
+            if res.athlete_state:
+                athlete_state_out = AthleteStateOut(
+                    readiness_pct=res.athlete_state.readiness_pct,
+                    performance_status=res.athlete_state.performance_status,
+                    fatigue_level=res.athlete_state.fatigue_level,
+                    recovery_status=res.athlete_state.recovery_status,
+                    adaptation_status=res.athlete_state.adaptation_status,
+                    confidence_pct=res.athlete_state.confidence_pct,
+                )
+            if res.baseline:
+                baseline_out = PersonalBaselineOut(
+                    typical_rpe=res.baseline.typical_rpe,
+                    typical_score=res.baseline.typical_score,
+                    typical_volume=res.baseline.typical_volume,
+                    typical_reps=res.baseline.typical_reps,
+                    sessions_analyzed=res.baseline.sessions_analyzed,
+                )
+            if res.counterfactuals:
+                counterfactuals_out = [
+                    CounterfactualOut(
+                        condition=c.condition,
+                        resulting_action=c.resulting_action.value if hasattr(c.resulting_action, "value") else str(c.resulting_action),
+                        explanation=c.explanation,
+                    )
+                    for c in res.counterfactuals
+                ]
+            if res.session_delta:
+                session_delta_out = SessionDeltaOut(
+                    perf_delta_pct=res.session_delta.perf_delta_pct,
+                    rpe_delta=res.session_delta.rpe_delta,
+                    volume_delta_pct=res.session_delta.volume_delta_pct,
+                    load_delta=res.session_delta.load_delta,
+                    reps_delta=res.session_delta.reps_delta,
+                    sets_delta=res.session_delta.sets_delta,
+                )
+            breakdown_out = ComponentBreakdownOut(
+                perf_trend=res.component_breakdown.get("perf_trend", 0.0),
+                score_level=res.component_breakdown.get("score_level", 0.0),
+                rpe_signal=res.component_breakdown.get("rpe_signal", 0.0),
+                volume_trend=res.component_breakdown.get("volume_trend", 0.0),
+            )
+            triggered_rules = res.triggered_rules
+            coaching_rationale = res.coaching_rationale
+
     return StateOut(
         exercise_id=state.exercise_id,
         exercise_name=state.exercise.name,
@@ -184,6 +326,13 @@ def state_out(state: ExerciseState) -> StateOut:
         current=PrescriptionOut(weight=state.current_weight, reps=state.current_reps, sets=state.current_sets),
         explanation=state.explanation,
         updated_at=state.updated_at,
+        athlete_state=athlete_state_out,
+        baseline=baseline_out,
+        counterfactuals=counterfactuals_out,
+        session_delta=session_delta_out,
+        component_breakdown=breakdown_out,
+        triggered_rules=triggered_rules,
+        coaching_rationale=coaching_rationale,
     )
 
 
@@ -193,11 +342,11 @@ def exercise_state(db: Session, exercise_id: int) -> StateOut:
     state = crud.get_state(db, exercise_id)
     if state is None:
         raise StateNotFound(exercise_id)
-    return state_out(state)
+    return state_out(state, db=db)
 
 
 def state_summary(db: Session) -> list[StateOut]:
-    return [state_out(s) for s in crud.list_states(db)]
+    return [state_out(s, db=db) for s in crud.list_states(db)]
 
 
 def adaptation_out(a: Adaptation) -> AdaptationOut:

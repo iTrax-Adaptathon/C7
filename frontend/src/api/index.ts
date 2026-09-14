@@ -7,4 +7,7 @@ export {
   getHealth,
   getStateSummary,
   submitWorkoutLog,
+  submitReadinessCheckIn,
+  evaluateSetAutoregulation,
 } from './fitness';
+

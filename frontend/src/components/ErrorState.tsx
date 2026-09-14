@@ -18,18 +18,18 @@ export function ErrorState({ error, onRetry, compact = false }: ErrorStateProps)
   return (
     <div
       role="alert"
-      className={`rounded-2xl border border-[#ef4444]/40 bg-[#ef4444]/10 text-left ${compact ? 'p-3' : 'p-5'} flex flex-col gap-2`}
+      className={`rounded-2xl border border-[#C86B68]/30 bg-[#C86B68]/15 text-left ${compact ? 'p-3' : 'p-5'} flex flex-col gap-2`}
     >
-      <div className="flex items-center gap-2 text-[#f87171] font-bold text-sm">
+      <div className="flex items-center gap-2 text-[#C86B68] font-bold text-sm font-mono">
         <AlertTriangle size={16} className="stroke-[2.5]" />
         {headline(error)}
       </div>
-      <p className="text-sm text-slate-300 leading-relaxed">{error.detail}</p>
+      <p className="text-sm text-[#F1EDE3] leading-relaxed">{error.detail}</p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="self-start mt-1 inline-flex items-center gap-2 h-10 px-4 rounded-full bg-[#1e2735] hover:bg-[#28324a] active:scale-95 text-white text-xs font-bold uppercase tracking-wider transition-all border border-slate-700"
+          className="self-start mt-1 inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-[#1D2520] hover:bg-[#20352A] active:scale-95 text-[#F1EDE3] text-xs font-semibold transition-all border border-[#303832] cursor-pointer"
         >
           <RotateCcw size={14} />
           Retry
