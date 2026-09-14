@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Local environment
+.env
+
+# NOTE: fitness.db is intentionally committed so the project runs immediately after cloning.
