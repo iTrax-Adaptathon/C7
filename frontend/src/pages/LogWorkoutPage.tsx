@@ -38,6 +38,11 @@ export function LogWorkoutPage({ exerciseId, exerciseName, planned, onCancel, on
   const [error, setError] = useState<ApiError | null>(null);
   const [autoregAlert, setAutoregAlert] = useState<SetAutoregulationOut | null>(null);
   const [showReadinessCheckIn, setShowReadinessCheckIn] = useState(true);
+  // The plan actually trained under. Starts as the backend's prescription;
+  // a readiness check-in can lower or raise it for *this* session only, so
+  // the log compares performance against the day's real target instead of
+  // unfairly scoring a rationally-reduced day as a missed lift.
+  const [effectivePlanned, setEffectivePlanned] = useState<Prescription>(start);
 
   const targetRpe = 7.0; // standard baseline target effort
 
@@ -51,9 +56,9 @@ export function LogWorkoutPage({ exerciseId, exerciseName, planned, onCancel, on
     try {
       const recommendation = await submitWorkoutLog({
         exerciseId,
-        plannedWeight: planned?.weight ?? weight,
-        plannedReps: planned?.reps ?? reps,
-        plannedSets: planned?.sets ?? sets,
+        plannedWeight: effectivePlanned.weight,
+        plannedReps: effectivePlanned.reps,
+        plannedSets: effectivePlanned.sets,
         actualWeight: weight,
         actualReps: reps,
         actualSets: sets,
@@ -108,7 +113,14 @@ export function LogWorkoutPage({ exerciseId, exerciseName, planned, onCancel, on
             {planned ? 'Target Prescription' : 'Introductory Session'}
           </div>
           {planned ? (
-            <div className="font-mono text-lg font-black text-[#F1EDE3]">{formatPrescription(planned)}</div>
+            <div className="font-mono text-lg font-black text-[#F1EDE3]">
+              {formatPrescription(effectivePlanned)}
+              {effectivePlanned.weight !== planned.weight && (
+                <span className="ml-2 align-middle text-[10px] font-mono font-bold uppercase tracking-wide text-[#8FB69A]">
+                  readiness-adjusted from {planned.weight} kg
+                </span>
+              )}
+            </div>
           ) : (
             <div className="text-sm text-[#B8B8AD]">Enter what you completed — this initializes the adaptive baseline.</div>
           )}
@@ -118,9 +130,11 @@ export function LogWorkoutPage({ exerciseId, exerciseName, planned, onCancel, on
       {/* Sprint 2: Pre-Workout Readiness Check-in Card */}
       {showReadinessCheckIn && (
         <PreWorkoutCheckInCard
+          exerciseId={exerciseId}
           initialPlan={planned}
           onApplyAdjustment={(adjWeight) => {
             setWeight(adjWeight);
+            setEffectivePlanned((prev) => ({ ...prev, weight: adjWeight }));
             setShowReadinessCheckIn(false);
           }}
         />

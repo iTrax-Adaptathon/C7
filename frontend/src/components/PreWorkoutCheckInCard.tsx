@@ -1,17 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Activity,
   BatteryCharging,
   Check,
   Flame,
   HeartPulse,
+  Loader2,
   Moon,
   Sparkles,
   Zap,
 } from 'lucide-react';
-import type { Prescription } from '../types/api';
+import { submitReadinessCheckIn } from '../api';
+import type { Prescription, ReadinessOut } from '../types/api';
 
 interface PreWorkoutCheckInCardProps {
+  exerciseId: number;
   initialPlan: Prescription | null;
   onApplyAdjustment: (adjustedWeight: number, modifierPct: number, reason: string) => void;
 }
@@ -86,66 +89,66 @@ const METRICS: MetricConfig[] = [
   },
 ];
 
-export function PreWorkoutCheckInCard({ initialPlan, onApplyAdjustment }: PreWorkoutCheckInCardProps) {
+const STATUS_COLOR: Record<ReadinessOut['status'], string> = {
+  'PRIME RECOVERY': 'text-[#8FB69A] bg-[#8FB69A]/15 border-[#8FB69A]/30',
+  'ADEQUATE BASELINE': 'text-[#F1EDE3] bg-[#20352A] border-[#303832]',
+  'ELEVATED FATIGUE': 'text-[#C86B68] bg-[#C86B68]/15 border-[#C86B68]/30',
+};
+
+/**
+ * All scoring happens on the backend (`POST /exercises/{id}/readiness`) —
+ * this card only collects the five ratings and displays whatever the API
+ * returns, so the number shown here and the load actually applied to the
+ * session can never disagree.
+ */
+export function PreWorkoutCheckInCard({ exerciseId, initialPlan, onApplyAdjustment }: PreWorkoutCheckInCardProps) {
   const [sleep, setSleep] = useState<number>(3);
   const [freshness, setFreshness] = useState<number>(3);
   const [energy, setEnergy] = useState<number>(3);
   const [stress, setStress] = useState<number>(3);
   const [soreness, setSoreness] = useState<number>(3);
   const [applied, setApplied] = useState<boolean>(false);
+  const [result, setResult] = useState<ReadinessOut | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const targetWeight = initialPlan?.weight ?? 60.0;
 
-  // Real-time calculation of multi-signal readiness modifier
-  const { readinessScore, modifier, modifierPct, adjustedWeight, message, status, statusColor } = useMemo(() => {
-    // 5-signal composite score: sleep (25%), freshness (25%), energy (25%), stress (12.5%), soreness (12.5%)
-    // Note: stress and soreness are inverted (1 = best, 5 = worst)
-    const rawScore =
-      (sleep * 0.25 + freshness * 0.25 + energy * 0.25 + (6 - stress) * 0.125 + (6 - soreness) * 0.125) * 20;
-    const clampedScore = Math.round(Math.max(15, Math.min(98, rawScore)));
-
-    // Bounded load modifier [-0.10, +0.10]
-    const clampedMod = Math.max(-0.1, Math.min(0.1, (clampedScore - 75) / 250));
-    const pct = Number((clampedMod * 100).toFixed(1));
-
-    // Scale target load by (1 + modifier) rounded to 2.5 kg plate increment
-    const rawAdjusted = targetWeight * (1 + clampedMod);
-    const stepped = Math.max(Math.round(rawAdjusted / 2.5) * 2.5, 2.5);
-
-    let msg = '';
-    let st: 'PRIME RECOVERY' | 'ADEQUATE BASELINE' | 'ELEVATED FATIGUE' = 'ADEQUATE BASELINE';
-    let color = 'text-[#C7A65A] bg-[#C7A65A]/15 border-[#C7A65A]/30';
-
-    if (clampedScore >= 80) {
-      st = 'PRIME RECOVERY';
-      color = 'text-[#8FB69A] bg-[#8FB69A]/15 border-[#8FB69A]/30';
-      msg = `High recovery velocity detected (+${pct}%). Contractile tissues and CNS are primed. Target load scaled up by +${(stepped - targetWeight).toFixed(1)} kg to exploit supercompensation.`;
-    } else if (clampedScore < 60) {
-      st = 'ELEVATED FATIGUE';
-      color = 'text-[#C86B68] bg-[#C86B68]/15 border-[#C86B68]/30';
-      const flags: string[] = [];
-      if (sleep <= 2) flags.push('poor sleep');
-      if (soreness >= 4) flags.push('severe DOMS');
-      if (stress >= 4) flags.push('high cortisol');
-      if (freshness <= 2) flags.push('sluggish musculature');
-      const reason = flags.length > 0 ? flags.join(', ') : 'systemic fatigue markers';
-      msg = `${reason.charAt(0).toUpperCase() + reason.slice(1)} detected. Target load moderated by ${pct}% (${(stepped - targetWeight).toFixed(1)} kg) to safeguard technique and joint integrity.`;
-    } else {
-      st = 'ADEQUATE BASELINE';
-      color = 'text-[#F1EDE3] bg-[#20352A] border-[#303832]';
-      msg = 'Readiness matches personal baseline (100%). Ready to execute target working prescription with full intensity.';
-    }
-
-    return {
-      readinessScore: clampedScore,
-      modifier: clampedMod,
-      modifierPct: pct,
-      adjustedWeight: stepped,
-      message: msg,
-      status: st,
-      statusColor: color,
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const timer = setTimeout(() => {
+      submitReadinessCheckIn(exerciseId, {
+        sleepRating: sleep,
+        freshnessRating: freshness,
+        energyRating: energy,
+        stressRating: stress,
+        sorenessRating: soreness,
+        targetLoad: targetWeight,
+      })
+        .then((r) => {
+          if (!cancelled) setResult(r);
+        })
+        .catch(() => {
+          /* Keep the last good reading on a transient error; the Apply
+             button falls back to the unadjusted plan if none ever loads. */
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 150);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
     };
-  }, [sleep, freshness, energy, stress, soreness, targetWeight]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sleep, freshness, energy, stress, soreness, exerciseId, targetWeight]);
+
+  const readinessScore = result?.readinessScore ?? 60;
+  const modifierPct = result ? Number((result.readinessModifier * 100).toFixed(1)) : 0;
+  const adjustedWeight = result?.adjustedLoad ?? targetWeight;
+  const message = result?.message ?? 'Computing readiness…';
+  const status: ReadinessOut['status'] = result?.status ?? 'ADEQUATE BASELINE';
+  const statusColor = STATUS_COLOR[status];
 
   const handleApply = () => {
     onApplyAdjustment(adjustedWeight, modifierPct, message);
@@ -302,14 +305,18 @@ export function PreWorkoutCheckInCard({ initialPlan, onApplyAdjustment }: PreWor
         type="button"
         id="btn-apply-readiness"
         onClick={handleApply}
-        disabled={applied && modifier === 0}
-        className={`w-full h-12 rounded-2xl font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg active:scale-95 ${
+        disabled={loading && !result}
+        className={`w-full h-12 rounded-2xl font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
           applied
             ? 'bg-[#20352A] text-[#8FB69A] border border-[#8FB69A]/40'
             : 'bg-[#8FB69A] hover:bg-[#A8D1B1] text-[#111312]'
         }`}
       >
-        {applied ? (
+        {loading && !result ? (
+          <>
+            <Loader2 size={16} className="animate-spin" /> Calculating…
+          </>
+        ) : applied ? (
           <>
             <Check size={16} className="stroke-[3]" /> Applied to Workout ({adjustedWeight} kg)
           </>

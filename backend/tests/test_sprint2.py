@@ -15,7 +15,9 @@ from backend.database import Base, make_engine
 from backend.engine.decision import evaluate_set_overshoot
 from backend.engine.readiness import (
     calculate_adjusted_load,
+    calculate_composite_readiness,
     calculate_readiness_modifier,
+    classify_readiness,
     generate_readiness_message,
 )
 from backend.engine.rules import (
@@ -69,6 +71,46 @@ def test_readiness_message():
     msg = generate_readiness_message(1, 1, 3, -0.10, 100.0, 90.0)
     assert "detected" in msg.lower()
     assert "-10" in msg or "10" in msg
+
+
+# --- Composite 5-signal readiness (matches the check-in UI) -------------------
+
+def test_composite_readiness_neutral():
+    """All five ratings at 3 (mid-scale, the check-in's default) is the true
+    neutral point: score 60/100, modifier exactly 0.0, ADEQUATE BASELINE."""
+    modifier, score = calculate_composite_readiness(3, 3, 3, 3, 3)
+    assert score == 60
+    assert modifier == 0.0
+    assert classify_readiness(score) == "ADEQUATE BASELINE"
+
+
+def test_composite_readiness_best_case():
+    """Best sleep/freshness/energy and lowest stress/soreness -> PRIME RECOVERY."""
+    modifier, score = calculate_composite_readiness(
+        sleep_rating=5, freshness_rating=5, energy_rating=5, stress_rating=1, soreness_rating=1
+    )
+    assert score == 98  # raw 100, clamped to the display ceiling
+    assert modifier == 0.10  # raw 100 lands exactly on the +10% cap
+    assert classify_readiness(score) == "PRIME RECOVERY"
+
+
+def test_composite_readiness_worst_case():
+    """Worst sleep/freshness/energy and highest stress/soreness -> ELEVATED FATIGUE."""
+    modifier, score = calculate_composite_readiness(
+        sleep_rating=1, freshness_rating=1, energy_rating=1, stress_rating=5, soreness_rating=5
+    )
+    assert score == 20  # raw 20, above the display floor of 15
+    assert modifier == -0.10  # raw 20 lands exactly on the -10% cap
+    assert classify_readiness(score) == "ELEVATED FATIGUE"
+
+
+def test_composite_readiness_stress_and_soreness_are_inverted():
+    """Stress/soreness are asked as 'how bad' (1=best, 5=worst) so they must
+    invert relative to sleep/freshness/energy (1=worst, 5=best) — raising
+    stress or soreness alone must lower the score, not raise it."""
+    _, baseline_score = calculate_composite_readiness(3, 3, 3, 3, 3)
+    _, higher_stress_score = calculate_composite_readiness(3, 3, 3, 5, 3)
+    assert higher_stress_score < baseline_score
 
 
 # --- 2. Intra-Session Autoregulation tests -------------------------------------
@@ -206,11 +248,18 @@ def test_client(tmp_path):
 
 
 def test_api_readiness_endpoint(test_client):
-    """POST /api/sessions/{id}/readiness returns scaled load and explainability."""
+    """POST /api/sessions/{id}/readiness returns scaled load and explainability.
+
+    Ratings use the check-in's own scale: sleep/freshness/energy 1=worst,
+    5=best; stress/soreness 1=best (calm/pain-free), 5=worst (overwhelmed/
+    severe) -- so sorenessRating/stressRating of 4 here mean "fairly sore,
+    fairly stressed", not "fairly fine". freshness/energy are omitted to
+    also cover a legacy 3-field-only payload (they default to neutral).
+    """
     payload = {
         "sleepRating": 2,
-        "sorenessRating": 2,
-        "stressRating": 3,
+        "sorenessRating": 4,
+        "stressRating": 4,
         "targetLoad": 100.0,
         "targetReps": 8,
         "targetSets": 3,

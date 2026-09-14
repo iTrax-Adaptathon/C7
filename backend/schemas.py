@@ -192,9 +192,13 @@ class RecommendationOut(CamelModel):
 # --- pre-workout readiness (Sprint 2) ------------------------------------------
 
 class PreWorkoutCheckIn(CamelModel):
-    sleep_rating: int = Field(..., ge=1, le=5, description="Sleep quality 1-5")
-    soreness_rating: int = Field(..., ge=1, le=5, description="Muscle freshness 1-5 (1=very sore, 5=fresh)")
-    stress_rating: int = Field(..., ge=1, le=5, description="Low stress / energy 1-5 (1=high stress, 5=low stress)")
+    sleep_rating: int = Field(..., ge=1, le=5, description="Sleep quality 1-5 (1=insomnia, 5=optimal)")
+    soreness_rating: int = Field(..., ge=1, le=5, description="Muscle soreness/DOMS 1-5 (1=none, 5=severe)")
+    stress_rating: int = Field(..., ge=1, le=5, description="Life/mental stress 1-5 (1=zen, 5=overwhelmed)")
+    freshness_rating: int = Field(
+        default=3, ge=1, le=5, description="Muscle freshness 1-5 (1=exhausted, 5=supercharged)"
+    )
+    energy_rating: int = Field(default=3, ge=1, le=5, description="Energy & drive 1-5 (1=lethargic, 5=euphoric)")
     target_load: float | None = Field(default=None, description="Optional target load in kg")
     target_reps: int | None = Field(default=None, description="Optional target reps")
     target_sets: int | None = Field(default=None, description="Optional target sets")
@@ -205,6 +209,8 @@ class ReadinessOut(CamelModel):
     sleep_rating: int
     soreness_rating: int
     stress_rating: int
+    freshness_rating: int
+    energy_rating: int
     readiness_modifier: float
     readiness_score: int
     original_load: float
@@ -213,7 +219,7 @@ class ReadinessOut(CamelModel):
     adjusted_reps: int
     original_sets: int
     adjusted_sets: int
-    status: str
+    status: Literal["PRIME RECOVERY", "ADEQUATE BASELINE", "ELEVATED FATIGUE"]
     message: str
 
 

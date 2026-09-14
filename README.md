@@ -17,9 +17,14 @@ for that exercise and answers with exactly one of:
 …plus the concrete next prescription, a confidence score, the trend, the
 numbers behind the decision, and a plain-English explanation.
 
-No sleep, soreness, stress or other recovery inputs are used. No LLM or AI
-service is involved in any numerical decision — the engine is pure Python and
-the same input always produces the same output.
+The core PROGRESS / HOLD / BACK OFF decision above is driven only by logged
+performance (weight, reps, sets, RPE) — it never depends on how the athlete
+says they feel going in. Recovery signals (sleep, muscle freshness, energy,
+stress, soreness) are handled separately, as a **pre-workout readiness
+check-in** that adjusts *that day's target load* before the set is even
+attempted — see "Readiness, autoregulation & explainability" below. No LLM or
+AI service is involved in any numerical decision — the engine is pure Python
+and the same input always produces the same output.
 
 ---
 
@@ -250,6 +255,8 @@ camelCase keys; unknown keys (including snake_case) are rejected with `422`.
 | `GET` | `/state/summary` | Current state of every exercise (dashboard) |
 | `GET` | `/state/{exerciseId}` | Current recommendation for one exercise (`404` until first log) |
 | `GET` | `/adaptations/{exerciseId}` | Decision audit trail, newest first |
+| `POST` | `/exercises/{exerciseId}/readiness` | Pre-workout readiness check-in → adjusted target load (see below) |
+| `POST` | `/api/autoregulation/evaluate` | Intra-session RPE overshoot/undershoot check (see below) |
 
 Errors: `404` unknown exercise / no state yet, `422` validation.
 
@@ -359,6 +366,56 @@ planned values); `next` is what to attempt next session. `reasoning` fields:
   }
 ]
 ```
+
+---
+
+## Readiness, autoregulation & explainability
+
+Three additional pieces sit alongside the core PROGRESS / HOLD / BACK OFF
+engine. None of them can change what the engine decides after the fact —
+they only change what the athlete is asked to attempt, or how the decision
+is narrated.
+
+### Pre-workout readiness check-in
+
+Before logging a session, the athlete rates five things on a 1-5 scale:
+sleep, muscle freshness and energy/drive (1 = worst, 5 = best), and
+stress and soreness (1 = best/calm/pain-free, 5 = worst/overwhelmed/severe).
+`POST /exercises/{exerciseId}/readiness` (`backend/engine/readiness.py`,
+`calculate_composite_readiness`) combines them into a 0-100 readiness score
+— weighted 25 % each for sleep/freshness/energy and 12.5 % each for
+stress/soreness — and a load modifier clamped to **±10 %**, centered so a
+neutral check-in (all 3s) always returns exactly `0.0`, never a false
+positive or negative. The frontend's `PreWorkoutCheckInCard` calls this
+endpoint directly rather than recomputing the score itself, so the number
+shown to the athlete and the load actually used can never disagree.
+
+Applying the check-in doesn't just cosmetically fill in the "actual weight"
+field — it replaces the plan the session is scored against
+(`LogWorkoutPage`'s `effectivePlanned`), so a rational, fatigue-driven
+reduction is compared to the *adjusted* target rather than the original one.
+Without this, a legitimately lighter day would look like a missed lift and
+could pull the next PROGRESS/HOLD/BACK OFF decision toward BACK OFF for the
+wrong reason.
+
+### Intra-session set autoregulation
+
+`POST /api/autoregulation/evaluate` (`backend/engine/decision.py`,
+`evaluate_set_overshoot`) reacts within a session: if RPE overshoots the
+target by ≥ 2.0 mid-session, it recommends an immediate 5 % load drop
+("fatigue stop"); if set 1 undershoots the target RPE by ≥ 2.5, it offers an
+optional small jump ("primed" progression). This is a same-session nudge,
+separate from the next-session PROGRESS/HOLD/BACK OFF decision.
+
+### Glass-box explainability
+
+`POST /logs` and `GET /state/*` also return `glassBox`, `athleteState`,
+`baseline`, `counterfactuals` and `sessionDelta` (`backend/engine/rules.py`)
+— a component-by-component breakdown of the signal, the rules that fired,
+a plain-language coaching rationale, and "what would have had to be true"
+counterfactuals (e.g. what RPE would have flipped the decision). This is
+still pure Python computed from the same numbers as the core decision; it
+narrates a decision already made rather than making a separate one.
 
 ---
 

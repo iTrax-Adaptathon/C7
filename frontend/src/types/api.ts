@@ -148,10 +148,13 @@ export interface Recommendation {
   sessionDelta?: SessionDelta;
 }
 
+/** Sleep/freshness/energy: 1=worst, 5=best. Stress/soreness: 1=best (calm/pain-free), 5=worst (overwhelmed/severe). */
 export interface PreWorkoutCheckIn {
   sleepRating: number;
   sorenessRating: number;
   stressRating: number;
+  freshnessRating?: number;
+  energyRating?: number;
   targetLoad?: number;
   targetReps?: number;
   targetSets?: number;
@@ -162,6 +165,8 @@ export interface ReadinessOut {
   sleepRating: number;
   sorenessRating: number;
   stressRating: number;
+  freshnessRating: number;
+  energyRating: number;
   readinessModifier: number;
   readinessScore: number;
   originalLoad: number;
@@ -170,7 +175,7 @@ export interface ReadinessOut {
   adjustedReps: number;
   originalSets: number;
   adjustedSets: number;
-  status: 'FRESH' | 'NORMAL' | 'FATIGUED';
+  status: 'PRIME RECOVERY' | 'ADEQUATE BASELINE' | 'ELEVATED FATIGUE';
   message: string;
 }
 

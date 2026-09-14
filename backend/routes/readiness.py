@@ -9,8 +9,9 @@ from backend.database import get_db
 from backend.engine.decision import evaluate_set_overshoot
 from backend.engine.readiness import (
     calculate_adjusted_load,
-    calculate_readiness_modifier,
-    generate_readiness_message,
+    calculate_composite_readiness,
+    classify_readiness,
+    generate_composite_readiness_message,
 )
 from backend.schemas import (
     PreWorkoutCheckIn,
@@ -47,21 +48,23 @@ def _compute_readiness(
     if target_load is None:
         target_load = 60.0  # fallback default
 
-    modifier = calculate_readiness_modifier(
-        checkin.sleep_rating, checkin.soreness_rating, checkin.stress_rating
+    modifier, readiness_score = calculate_composite_readiness(
+        checkin.sleep_rating,
+        checkin.freshness_rating,
+        checkin.energy_rating,
+        checkin.stress_rating,
+        checkin.soreness_rating,
     )
     adjusted_load = calculate_adjusted_load(target_load, modifier)
-    
-    # Score out of 100 for intuitive UI progress display
-    # baseline 3,3,3 -> modifier 0 -> score 75
-    # modifier in [-0.10, +0.10] -> score in [50, 100]
-    readiness_score = int(round(75 + modifier * 250))
-    status_label = "FRESH" if modifier >= 0.03 else ("FATIGUED" if modifier <= -0.03 else "NORMAL")
-    message = generate_readiness_message(
+    status_label = classify_readiness(readiness_score)
+    message = generate_composite_readiness_message(
         checkin.sleep_rating,
-        checkin.soreness_rating,
+        checkin.freshness_rating,
+        checkin.energy_rating,
         checkin.stress_rating,
+        checkin.soreness_rating,
         modifier,
+        readiness_score,
         target_load,
         adjusted_load,
     )
@@ -71,6 +74,8 @@ def _compute_readiness(
         sleep_rating=checkin.sleep_rating,
         soreness_rating=checkin.soreness_rating,
         stress_rating=checkin.stress_rating,
+        freshness_rating=checkin.freshness_rating,
+        energy_rating=checkin.energy_rating,
         readiness_modifier=modifier,
         readiness_score=readiness_score,
         original_load=target_load,
