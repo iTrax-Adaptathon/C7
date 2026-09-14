@@ -1,7 +1,10 @@
-# Adaptive Fitness Coach — Backend
+# Adaptive Fitness Coach
 
-A small, deterministic REST backend that turns workout logs into next-session
-recommendations. A user logs an exercise with **weight, reps, sets** (planned
+A deterministic REST backend that turns workout logs into next-session
+recommendations, plus a React frontend (`frontend/`) for logging sessions and
+viewing them. The backend is the single source of truth for every score,
+trend, confidence, PROGRESS / HOLD / BACK OFF decision and prescription; the
+frontend only displays what the API returns. A user logs an exercise with **weight, reps, sets** (planned
 and actual) and an **RPE** (1–10). The backend analyses the last five sessions
 for that exercise and answers with exactly one of:
 
@@ -37,6 +40,32 @@ database (`fitness.db`) so the API is immediately usable — **no seed step is
 needed after cloning**. Try `GET /state/summary`.
 
 Tested with Python 3.14 / FastAPI 0.141 / SQLAlchemy 2.0 / Pydantic 2.13.
+
+### Frontend
+
+With the API running, in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev          # http://localhost:3000
+```
+
+The frontend talks to `http://127.0.0.1:8000` by default. To point it
+elsewhere, copy `frontend/.env.example` to `frontend/.env` and set
+`VITE_API_BASE_URL`. Other scripts: `npm run build`, `npm run typecheck`,
+`npm test` (Vitest: API client contract and formatting helpers).
+
+Screens: **Next up** (dashboard from `GET /state/summary`), **exercise
+detail** (`/state/{id}`, `/logs/{id}`, `/adaptations/{id}`), **log session**
+(`POST /logs` → the fresh recommendation is shown immediately) and
+**History** (all logs, newest first). No workout input other than weight,
+reps, sets and RPE exists, and no decision logic runs in the browser.
+
+> Logging sessions through the UI writes to whatever database the backend is
+> using. To keep the committed `fitness.db` pristine while trying the app,
+> run the backend with `DATABASE_URL=sqlite:///./scratch.db` (see `.env.example`)
+> or re-run `python -m backend.seed` afterwards.
 
 ---
 
@@ -85,6 +114,14 @@ Adapt/
 ├── .env.example            optional environment variables
 ├── scripts/
 │   └── simulate.py         closed-loop simulator used to validate the engine
+├── frontend/               Vite + React + Tailwind client (see frontend/README.md)
+│   └── src/
+│       ├── api/            the only place fetch() is called; typed per endpoint
+│       ├── types/api.ts    TypeScript mirrors of backend/schemas.py
+│       ├── hooks/          data loading (summary, exercise detail, all logs)
+│       ├── pages/          Dashboard, ExerciseDetail, LogWorkout, History
+│       ├── components/     ExerciseCard, Stepper, RpeSelector, TrendChart, AdaptationResultModal, …
+│       └── utils/          presentation-only formatting (UTC dates, "62.5 kg × 8 × 3", decision colours)
 └── backend/
     ├── main.py             FastAPI app, CORS, routers, GET /health
     ├── settings.py         DATABASE_URL, CORS_ORIGINS (from .env / environment)

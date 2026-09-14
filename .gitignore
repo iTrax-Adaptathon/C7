@@ -9,3 +9,8 @@ venv/
 .env
 
 # NOTE: fitness.db is intentionally committed so the project runs immediately after cloning.
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
