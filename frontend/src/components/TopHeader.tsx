@@ -29,7 +29,11 @@ export function TopHeader({ deviceMode = 'phone', onToggleDevice }: TopHeaderPro
   const label = status === 'online' ? 'Engine' : status === 'offline' ? 'Offline' : 'Syncing';
 
   return (
-    <header id="app-top-header" className="w-full px-4 sm:px-5 py-3 flex items-center justify-between z-20 bg-[#171C19] border-b border-[#303832]">
+    <header
+      id="app-top-header"
+      className="w-full px-4 sm:px-5 py-3 flex items-center justify-between z-20 bg-[#171C19] border-b border-[#303832]"
+      style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+    >
       <div className="flex items-center gap-2.5">
         <span className="w-8 h-8 rounded-xl bg-[#20352A] border border-[#8FB69A]/30 flex items-center justify-center text-[#8FB69A] shadow-sm">
           <Dumbbell size={15} className="stroke-[2.5]" />

@@ -5,6 +5,7 @@ import { DeviceFrame } from './components/DeviceFrame';
 import { MobileStatusBar } from './components/MobileStatusBar';
 import { TopHeader } from './components/TopHeader';
 import { DeviceModeContext } from './context/DeviceModeContext';
+import { useStandalone } from './hooks/useStandalone';
 import { useStateSummary } from './hooks/useStateSummary';
 import { DashboardPage } from './pages/DashboardPage';
 import { ExerciseDetailPage } from './pages/ExerciseDetailPage';
@@ -39,6 +40,7 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [result, setResult] = useState<LoggedResult | null>(null);
   const summary = useStateSummary(refreshKey);
+  const standalone = useStandalone();
 
   const openLogger = (exerciseId: number, exerciseName: string, planned: Prescription | null, returnTo: 'dashboard' | 'detail') =>
     setView({ name: 'log', exerciseId, exerciseName, planned, returnTo });
@@ -70,7 +72,7 @@ export default function App() {
     <DeviceModeContext.Provider value={deviceMode}>
       <DeviceFrame deviceMode={deviceMode} onToggleDevice={setDeviceMode}>
       {/* Mobile Status Bar only rendered in Phone mode */}
-      {deviceMode === 'phone' && <MobileStatusBar isMobileFrame={true} />}
+      {deviceMode === 'phone' && !standalone && <MobileStatusBar isMobileFrame={true} />}
 
       {/* Top App Header with Live Backend Dot and Device Switcher */}
       <TopHeader deviceMode={deviceMode} onToggleDevice={setDeviceMode} />
