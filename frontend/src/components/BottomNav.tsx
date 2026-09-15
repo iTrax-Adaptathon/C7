@@ -19,7 +19,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
     <nav
       id="bottom-navigation"
       aria-label="Mobile Navigation"
-      className="absolute bottom-0 inset-x-0 z-40 bg-[#171C19]/95 backdrop-blur-md border-t border-[#303832] px-3 pt-2 pb-[max(0.6rem,env(safe-area-inset-bottom))] shadow-2xl"
+      className="absolute bottom-0 inset-x-0 z-40 bg-[#171C19] border-t border-[#303832] px-3 pt-2 pb-[max(0.6rem,env(safe-area-inset-bottom))] shadow-2xl [transform:translateZ(0)]"
     >
       <div className="flex items-center justify-around gap-1.5 max-w-md mx-auto">
         {TABS.map(({ id, label, Icon }) => {
