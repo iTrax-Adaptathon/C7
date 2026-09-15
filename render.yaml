@@ -1,12 +1,16 @@
 # Render Blueprint — deploys both services from this repo in one click:
 # Render dashboard -> New -> Blueprint -> select this repo -> Apply.
 #
-# `adaptive-fitness-api` is a fixed, predictable service name so its public
-# URL (https://adaptive-fitness-api.onrender.com) can be hardcoded as the
-# frontend's build-time API base below, with no manual wiring between the
-# two deploys. If Render reports that name is already taken (unlikely, but
-# names are global on the platform), rename the service in this file to
-# something unique AND update VITE_API_BASE_URL to match before applying.
+# NOTE: "adaptive-fitness-api" was already taken by an unrelated project on
+# Render's platform (service names/URLs are global, not per-account), so
+# Render silently assigned a suffixed hostname instead of erroring. The
+# actual deployed URL is https://adaptive-fitness-api-hmcl.onrender.com --
+# VITE_API_BASE_URL below is hardcoded to that real URL, not the name in
+# this file. If this blueprint is ever re-applied from scratch (new
+# account, renamed service, etc.), check the actual assigned URL in the
+# Render dashboard and update VITE_API_BASE_URL to match before relying on
+# this file, since Render does not support building the value from another
+# service's URL directly in a static site's env var.
 
 services:
   - type: web
@@ -29,7 +33,7 @@ services:
     staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://adaptive-fitness-api.onrender.com
+        value: https://adaptive-fitness-api-hmcl.onrender.com
     routes:
       - type: rewrite
         source: /*
